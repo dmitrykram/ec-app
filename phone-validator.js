@@ -2,25 +2,51 @@
 (function () {
   "use strict";
 
-  if (window.__ecwidPhoneValidatorV4) return;
-  window.__ecwidPhoneValidatorV4 = true;
+  if (window.__ecwidPhoneValidatorV5) return;
+  window.__ecwidPhoneValidatorV5 = true;
 
   const LIB_URL =
     "https://unpkg.com/libphonenumber-js@1.11.20/bundle/libphonenumber-js.min.js";
 
-  const STYLE_ID = "epv-styles";
+  const CSS_URL =
+    "https://YOUR_HOST/phone-validator.css";
+
   const COUNTRY_FIELD =
     'input[name="country"][autocomplete="shipping country"]';
 
-  // --------------------------------------------------
-  // 1. Load libphonenumber-js
-  // --------------------------------------------------
+  // ------------------------------------------
+  // Load external CSS
+  // ------------------------------------------
+
+  function loadStyles() {
+    if (document.querySelector('link[data-epv-styles]')) {
+      return Promise.resolve();
+    }
+
+    return new Promise((resolve, reject) => {
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = CSS_URL;
+      link.dataset.epvStyles = "true";
+
+      link.onload = resolve;
+      link.onerror = () =>
+        reject(new Error("Failed to load phone-validator.css"));
+
+      document.head.appendChild(link);
+    });
+  }
+
+  // ------------------------------------------
+  // Load phone library
+  // ------------------------------------------
 
   function loadLibrary() {
-    const existing = window.libphonenumber;
-
-    if (existing && typeof existing.getCountries === "function") {
-      return Promise.resolve(existing);
+    if (
+      window.libphonenumber &&
+      typeof window.libphonenumber.getCountries === "function"
+    ) {
+      return Promise.resolve(window.libphonenumber);
     }
 
     if (window.__epvLibraryPromise) {
@@ -29,11 +55,10 @@
 
     window.__epvLibraryPromise = new Promise((resolve, reject) => {
       const script = document.createElement("script");
-
       script.src = LIB_URL;
       script.async = true;
 
-      script.onload = function () {
+      script.onload = () => {
         const lib = window.libphonenumber;
 
         if (lib && typeof lib.getCountries === "function") {
@@ -45,9 +70,8 @@
         }
       };
 
-      script.onerror = function () {
+      script.onerror = () =>
         reject(new Error("Failed to load libphonenumber-js"));
-      };
 
       document.head.appendChild(script);
     });
@@ -55,203 +79,12 @@
     return window.__epvLibraryPromise;
   }
 
-  // --------------------------------------------------
-  // 2. Styles
-  // --------------------------------------------------
-
-  function addStyles() {
-    if (document.getElementById(STYLE_ID)) return;
-
-    const style = document.createElement("style");
-    style.id = STYLE_ID;
-
-    style.textContent = `
-      /* Full-width phone row */
-      .ec-form__row.epv-phone-row {
-        position: relative !important;
-        display: flex !important;
-        flex-wrap: wrap !important;
-        width: 100% !important;
-        min-width: 0;
-        overflow: visible !important;
-      }
-
-      .ec-form__row.epv-phone-row > .ec-form__cell--phone {
-        flex: 0 0 100% !important;
-        width: 100% !important;
-        max-width: 100% !important;
-        min-width: 0;
-        box-sizing: border-box;
-      }
-
-      /* Phone and country selector */
-      .epv-root {
-        position: relative;
-        z-index: 20;
-        display: grid;
-        grid-template-columns: 112px minmax(0, 1fr);
-        grid-template-areas:
-          "country phone"
-          "error error"
-          "status status";
-        align-items: stretch;
-        gap: 8px;
-        width: 100%;
-        min-width: 0;
-        margin: 0 0 8px;
-        box-sizing: border-box;
-      }
-
-      .epv-country {
-        grid-area: country;
-        position: relative;
-        z-index: 100;
-        min-width: 0;
-      }
-
-      .epv-trigger {
-        box-sizing: border-box;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 6px;
-        width: 100%;
-        min-height: 44px;
-        padding: 9px;
-        border: 1px solid #c8cdd2;
-        border-radius: 5px;
-        background: #fff;
-        color: #222;
-        font: inherit;
-        cursor: pointer;
-      }
-
-      .epv-trigger:focus-visible,
-      .epv-search:focus-visible,
-      .epv-option:focus-visible {
-        outline: 2px solid #2878e3;
-        outline-offset: 2px;
-      }
-
-      /* Dropdown floats above other checkout fields */
-      .epv-menu {
-        position: absolute !important;
-        z-index: 999999 !important;
-        top: calc(100% + 4px);
-        left: 0;
-        width: 280px;
-        max-width: min(280px, 80vw);
-        padding: 8px;
-        border: 1px solid #d5d9dd;
-        border-radius: 8px;
-        background: #fff;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, .18);
-        box-sizing: border-box;
-      }
-
-      .epv-menu[hidden],
-      .epv-error[hidden],
-      .epv-status[hidden] {
-        display: none;
-      }
-
-      .epv-search {
-        box-sizing: border-box;
-        width: 100%;
-        padding: 10px;
-        border: 1px solid #c8cdd2;
-        border-radius: 5px;
-        font: inherit;
-      }
-
-      .epv-options {
-        max-height: 230px;
-        overflow-y: auto;
-        margin-top: 6px;
-      }
-
-      .epv-option {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        width: 100%;
-        padding: 9px 7px;
-        border: 0;
-        border-radius: 4px;
-        background: #fff;
-        color: #222;
-        text-align: left;
-        font: inherit;
-        cursor: pointer;
-      }
-
-      .epv-option:hover,
-      .epv-option[aria-selected="true"] {
-        background: #edf4ff;
-      }
-
-      .epv-option-name {
-        flex: 1;
-      }
-
-      .epv-option-code {
-        color: #66707a;
-      }
-
-      .epv-root > #ec-phone {
-        grid-area: phone;
-        display: block;
-        width: 100% !important;
-        min-width: 0;
-        max-width: 100%;
-        flex: none !important;
-        box-sizing: border-box;
-      }
-
-      .epv-error {
-        grid-area: error;
-        min-width: 0;
-        margin: 0;
-        color: #c62828;
-        font-size: 13px;
-        line-height: 1.4;
-        overflow-wrap: anywhere;
-      }
-
-      .epv-status {
-        grid-area: status;
-        min-width: 0;
-        margin: 0;
-        color: #68727d;
-        font-size: 12px;
-        line-height: 1.4;
-        overflow-wrap: anywhere;
-      }
-
-      .epv-root.epv-invalid .epv-trigger {
-        border-color: #c62828;
-      }
-
-      @media (max-width: 480px) {
-        .epv-root {
-          grid-template-columns: 100px minmax(0, 1fr);
-        }
-
-        .epv-menu {
-          width: 270px;
-        }
-      }
-    `;
-
-    document.head.appendChild(style);
-  }
-
-  // --------------------------------------------------
-  // 3. Country helpers
-  // --------------------------------------------------
+  // ------------------------------------------
+  // Country helpers
+  // ------------------------------------------
 
   function getCountries(lib) {
-    const displayNames = new Intl.DisplayNames(
+    const names = new Intl.DisplayNames(
       ["en"],
       { type: "region" }
     );
@@ -259,7 +92,7 @@
     return lib.getCountries()
       .map(code => ({
         code,
-        name: displayNames.of(code) || code,
+        name: names.of(code) || code,
         dial: "+" + lib.getCountryCallingCode(code)
       }))
       .sort((a, b) => a.name.localeCompare(b.name));
@@ -273,9 +106,7 @@
     const value = input.value.trim();
     const upper = value.toUpperCase();
 
-    if (lib.getCountries().includes(upper)) {
-      return upper;
-    }
+    if (lib.getCountries().includes(upper)) return upper;
 
     const match = countries.find(country =>
       country.name.toLowerCase() === value.toLowerCase()
@@ -285,23 +116,21 @@
   }
 
   function flag(code) {
-    return code
-      .toUpperCase()
-      .replace(/[A-Z]/g, letter =>
-        String.fromCodePoint(127397 + letter.charCodeAt(0))
-      );
+    return code.toUpperCase().replace(/[A-Z]/g, letter =>
+      String.fromCodePoint(127397 + letter.charCodeAt(0))
+    );
   }
 
-  // --------------------------------------------------
-  // 4. Mount the phone selector
-  // --------------------------------------------------
+  // ------------------------------------------
+  // Mount UI
+  // ------------------------------------------
 
   function mount(phone, lib, countries) {
     if (!phone || !phone.isConnected) return;
     if (phone.dataset.epvMounted === "true") return;
     if (phone.disabled || phone.readOnly) return;
 
-    // Move the entire Ecwid phone cell to a separate row.
+    // Move the complete phone cell below the name row.
     const phoneCell = phone.closest(".ec-form__cell--phone");
     const originalRow = phoneCell?.closest(".ec-form__row");
 
@@ -358,10 +187,9 @@
     status.hidden = true;
     status.setAttribute("aria-live", "polite");
 
-    // Preserve Ecwid's original input.
+    // Preserve Ecwid's original input element.
     phone.parentNode.insertBefore(root, phone);
     root.append(countryBox, phone);
-
     phone.insertAdjacentElement("afterend", error);
     error.insertAdjacentElement("afterend", status);
 
@@ -380,9 +208,7 @@
     let touched = false;
 
     function selectedCountry() {
-      return countries.find(country =>
-        country.code === selectedCode
-      );
+      return countries.find(country => country.code === selectedCode);
     }
 
     function updateTrigger() {
@@ -491,10 +317,7 @@
       }
 
       try {
-        const parsed = lib.parsePhoneNumberFromString(
-          raw,
-          selectedCode
-        );
+        const parsed = lib.parsePhoneNumberFromString(raw, selectedCode);
 
         if (!parsed || !parsed.isPossible()) {
           throw new Error("Please check the phone number length.");
@@ -547,9 +370,7 @@
       else closeMenu();
     });
 
-    search.addEventListener("input", () => {
-      renderOptions(search.value);
-    });
+    search.addEventListener("input", () => renderOptions(search.value));
 
     document.addEventListener("click", event => {
       if (!countryBox.contains(event.target)) closeMenu();
@@ -578,21 +399,16 @@
     });
   }
 
-  // --------------------------------------------------
-  // 5. Observe checkout updates
-  // --------------------------------------------------
+  // ------------------------------------------
+  // Observe Ecwid checkout
+  // ------------------------------------------
 
   function start(lib) {
-    addStyles();
-
     const countries = getCountries(lib);
 
     function scan() {
       const phone = document.querySelector("#ec-phone");
-
-      if (phone) {
-        mount(phone, lib, countries);
-      }
+      if (phone) mount(phone, lib, countries);
     }
 
     scan();
@@ -608,13 +424,13 @@
     });
   }
 
-  // --------------------------------------------------
-  // 6. Initialize
-  // --------------------------------------------------
+  // ------------------------------------------
+  // Initialize
+  // ------------------------------------------
 
-  loadLibrary()
-    .then(lib => start(lib))
+  Promise.all([loadStyles(), loadLibrary()])
+    .then(([, lib]) => start(lib))
     .catch(error => {
-      console.error("[Phone Validator] Failed to initialize:", error);
+      console.error("[Phone Validator] Initialization failed:", error);
     });
 })();
