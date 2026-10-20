@@ -234,3 +234,16 @@
     min-height: 0;
     box-sizing: border-box;
 }
+
+.epv-root {
+    grid-template-columns: 80px minmax(0, 1fr) !important;
+    column-gap: 0px !important;
+}
+
+.epv-country {
+    margin-right: 0 !important;
+}
+
+.epv-root > #ec-phone {
+    margin-left: 0 !important;
+}
