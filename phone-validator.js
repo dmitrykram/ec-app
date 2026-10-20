@@ -46,3 +46,43 @@
     document.addEventListener("DOMContentLoaded", reportEcwid);
   }
 })();
+
+(function () {
+  "use strict";
+
+  function attachPhoneDiagnostic() {
+    const phone = document.querySelector("#ec-phone");
+
+    if (!phone || phone.dataset.phoneDiagnostic === "true") {
+      return;
+    }
+
+    phone.dataset.phoneDiagnostic = "true";
+
+    console.info("[Phone Validator] Phone field found:", {
+      type: phone.type,
+      required: phone.required,
+      maxLength: phone.maxLength
+    });
+
+    phone.addEventListener("input", function () {
+      console.info("[Phone Validator] Input changed", {
+        length: phone.value.length,
+        hasValue: phone.value.trim().length > 0
+      });
+    });
+
+    phone.addEventListener("blur", function () {
+      console.info("[Phone Validator] Field blur");
+    });
+  }
+
+  attachPhoneDiagnostic();
+
+  const observer = new MutationObserver(attachPhoneDiagnostic);
+
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+})();
