@@ -213,3 +213,24 @@
     max-height: 180px !important;
   }
 }
+
+.ec-form__cell-name {
+    max-width: 99% !important;
+    flex: 0 0 100% !important;
+    box-sizing: border-box !important;
+}
+
+.epv-root {
+    align-items: stretch;
+}
+
+.epv-country {
+    display: flex;
+    align-self: stretch;
+}
+
+.epv-trigger {
+    height: 100%;
+    min-height: 0;
+    box-sizing: border-box;
+}
