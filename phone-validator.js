@@ -2,43 +2,17 @@
 (function () {
   "use strict";
 
-  if (window.__ecwidPhoneValidatorV5) return;
-  window.__ecwidPhoneValidatorV5 = true;
+  if (window.__ecwidPhoneValidatorV6) return;
+  window.__ecwidPhoneValidatorV6 = true;
 
   const LIB_URL =
     "https://unpkg.com/libphonenumber-js@1.11.20/bundle/libphonenumber-js.min.js";
-
-  const CSS_URL =
-    "https://YOUR_HOST/phone-validator.css";
 
   const COUNTRY_FIELD =
     'input[name="country"][autocomplete="shipping country"]';
 
   // ------------------------------------------
-  // Load external CSS
-  // ------------------------------------------
-
-  function loadStyles() {
-    if (document.querySelector('link[data-epv-styles]')) {
-      return Promise.resolve();
-    }
-
-    return new Promise((resolve, reject) => {
-      const link = document.createElement("link");
-      link.rel = "stylesheet";
-      link.href = CSS_URL;
-      link.dataset.epvStyles = "true";
-
-      link.onload = resolve;
-      link.onerror = () =>
-        reject(new Error("Failed to load phone-validator.css"));
-
-      document.head.appendChild(link);
-    });
-  }
-
-  // ------------------------------------------
-  // Load phone library
+  // Load phone validation library
   // ------------------------------------------
 
   function loadLibrary() {
@@ -58,20 +32,19 @@
       script.src = LIB_URL;
       script.async = true;
 
-      script.onload = () => {
+      script.onload = function () {
         const lib = window.libphonenumber;
 
         if (lib && typeof lib.getCountries === "function") {
           resolve(lib);
         } else {
-          reject(
-            new Error("libphonenumber-js browser API unavailable")
-          );
+          reject(new Error("Phone library API unavailable"));
         }
       };
 
-      script.onerror = () =>
-        reject(new Error("Failed to load libphonenumber-js"));
+      script.onerror = function () {
+        reject(new Error("Failed to load phone validation library"));
+      };
 
       document.head.appendChild(script);
     });
@@ -122,7 +95,28 @@
   }
 
   // ------------------------------------------
-  // Mount UI
+  // Move phone cell to a full-width row
+  // ------------------------------------------
+
+  function movePhoneCell(phone) {
+    const phoneCell = phone.closest(".ec-form__cell--phone");
+    const originalRow = phoneCell?.closest(".ec-form__row");
+
+    if (!phoneCell || !originalRow) return;
+
+    let phoneRow = document.querySelector(".ec-form__row.epv-phone-row");
+
+    if (!phoneRow) {
+      phoneRow = document.createElement("div");
+      phoneRow.className = "ec-form__row epv-phone-row";
+      originalRow.insertAdjacentElement("afterend", phoneRow);
+    }
+
+    phoneRow.appendChild(phoneCell);
+  }
+
+  // ------------------------------------------
+  // Mount selector and validator
   // ------------------------------------------
 
   function mount(phone, lib, countries) {
@@ -130,21 +124,7 @@
     if (phone.dataset.epvMounted === "true") return;
     if (phone.disabled || phone.readOnly) return;
 
-    // Move the complete phone cell below the name row.
-    const phoneCell = phone.closest(".ec-form__cell--phone");
-    const originalRow = phoneCell?.closest(".ec-form__row");
-
-    if (phoneCell && originalRow) {
-      let phoneRow = document.querySelector(".ec-form__row.epv-phone-row");
-
-      if (!phoneRow) {
-        phoneRow = document.createElement("div");
-        phoneRow.className = "ec-form__row epv-phone-row";
-        originalRow.insertAdjacentElement("afterend", phoneRow);
-      }
-
-      phoneRow.appendChild(phoneCell);
-    }
+    movePhoneCell(phone);
 
     phone.dataset.epvMounted = "true";
 
@@ -187,7 +167,7 @@
     status.hidden = true;
     status.setAttribute("aria-live", "polite");
 
-    // Preserve Ecwid's original input element.
+    // Keep the original Ecwid input and its name.
     phone.parentNode.insertBefore(root, phone);
     root.append(countryBox, phone);
     phone.insertAdjacentElement("afterend", error);
@@ -370,7 +350,9 @@
       else closeMenu();
     });
 
-    search.addEventListener("input", () => renderOptions(search.value));
+    search.addEventListener("input", () => {
+      renderOptions(search.value);
+    });
 
     document.addEventListener("click", event => {
       if (!countryBox.contains(event.target)) closeMenu();
@@ -425,12 +407,15 @@
   }
 
   // ------------------------------------------
-  // Initialize
+  // Initialize JS only; Ecwid loads CSS
   // ------------------------------------------
 
-  Promise.all([loadStyles(), loadLibrary()])
-    .then(([, lib]) => start(lib))
+  loadLibrary()
+    .then(lib => start(lib))
     .catch(error => {
-      console.error("[Phone Validator] Initialization failed:", error);
+      console.error(
+        "[Phone Validator] Initialization failed:",
+        error
+      );
     });
 })();
