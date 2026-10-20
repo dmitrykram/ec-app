@@ -3,7 +3,7 @@
    Ecwid Phone Validator
    ========================================= */
 
-/* Put the complete phone field on its own row */
+/* Full-width phone row below name */
 .ec-form__row.epv-phone-row {
   position: relative !important;
   display: flex !important;
@@ -22,7 +22,7 @@
   box-sizing: border-box;
 }
 
-/* Phone input + country selector */
+/* Phone input and country selector */
 .epv-root {
   position: relative;
   z-index: 20;
@@ -56,12 +56,10 @@
   min-height: 44px;
   padding: 9px;
   box-sizing: border-box;
-
   border: 1px solid #c8cdd2;
   border-radius: 5px;
   background: #fff;
   color: #222;
-
   font: inherit;
   cursor: pointer;
 }
@@ -77,7 +75,7 @@
   outline-offset: 2px;
 }
 
-/* Original Ecwid input stays in the form */
+/* Original Ecwid phone input */
 .epv-root > #ec-phone {
   grid-area: phone;
   display: block;
@@ -88,23 +86,19 @@
   box-sizing: border-box;
 }
 
-/* Dropdown: positioned over the checkout, not in document flow */
+/* Dropdown panel */
 .epv-menu {
   position: absolute !important;
   z-index: 999999 !important;
   top: calc(100% + 2px);
   left: 0;
-
   width: 280px;
   max-width: min(280px, 80vw);
-  max-height: 280px;
   padding: 8px;
   box-sizing: border-box;
-
-  overflow: hidden;
+  overflow: hidden !important;
   background: #fff !important;
   opacity: 1 !important;
-
   border: 1px solid #d5d9dd;
   border-radius: 8px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, .18);
@@ -113,10 +107,10 @@
 .epv-menu[hidden],
 .epv-error[hidden],
 .epv-status[hidden] {
-  display: none;
+  display: none !important;
 }
 
-/* Search field stays at the top */
+/* Search field remains fixed above the list */
 .epv-search {
   display: block;
   width: 100%;
@@ -124,41 +118,41 @@
   margin: 0;
   padding: 9px 10px;
   box-sizing: border-box;
-
   border: 1px solid #c8cdd2;
   border-radius: 5px;
   background: #fff !important;
   color: #222;
-
   font: inherit;
 }
 
-/* Only the country options scroll */
+/* Scrollable country list */
 .epv-options {
-  display: block;
-  max-height: 220px;
+  display: block !important;
+  height: 220px !important;
+  max-height: 220px !important;
+  min-height: 0 !important;
   margin-top: 6px;
-  overflow-y: auto;
-  overflow-x: hidden;
-  overscroll-behavior: contain;
-  background: #fff;
+  overflow-y: scroll !important;
+  overflow-x: hidden !important;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+  background: #fff !important;
 }
 
+/* Country option */
 .epv-option {
   display: flex;
+  flex: 0 0 auto;
   align-items: center;
   gap: 8px;
-
   width: 100%;
   min-height: 36px;
   padding: 8px 7px;
   box-sizing: border-box;
-
   border: 0;
   border-radius: 4px;
   background: #fff !important;
   color: #222;
-
   text-align: left;
   font: inherit;
   cursor: pointer;
@@ -212,10 +206,10 @@
 
   .epv-menu {
     width: 270px;
-    max-height: 230px;
   }
 
   .epv-options {
-    max-height: 180px;
+    height: 180px !important;
+    max-height: 180px !important;
   }
 }
