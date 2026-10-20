@@ -2,8 +2,8 @@
 (function () {
   "use strict";
 
-  if (window.__ecwidPhoneValidatorV2) return;
-  window.__ecwidPhoneValidatorV2 = true;
+  if (window.__ecwidPhoneValidatorV3) return;
+  window.__ecwidPhoneValidatorV3 = true;
 
   const LIB_URL =
     "https://unpkg.com/libphonenumber-js@1.11.20/bundle/libphonenumber-js.min.js";
@@ -12,17 +12,16 @@
   const COUNTRY_FIELD =
     'input[name="country"][autocomplete="shipping country"]';
 
-  let observer = null;
-
   // --------------------------------------------------
-  // 1. Load libphonenumber-js
+  // 1. Load phone library
   // --------------------------------------------------
 
   function loadLibrary() {
-    const existing = window.libphonenumber;
-
-    if (existing && typeof existing.getCountries === "function") {
-      return Promise.resolve(existing);
+    if (
+      window.libphonenumber &&
+      typeof window.libphonenumber.getCountries === "function"
+    ) {
+      return Promise.resolve(window.libphonenumber);
     }
 
     if (window.__epvLibraryPromise) {
@@ -31,7 +30,6 @@
 
     window.__epvLibraryPromise = new Promise((resolve, reject) => {
       const script = document.createElement("script");
-
       script.src = LIB_URL;
       script.async = true;
 
@@ -40,15 +38,13 @@
 
         if (lib && typeof lib.getCountries === "function") {
           resolve(lib);
-          return;
+        } else {
+          reject(
+            new Error(
+              "Phone library loaded, but its browser API is unavailable."
+            )
+          );
         }
-
-        reject(
-          new Error(
-            "Library loaded, but its browser API was not found. " +
-            "Check the script URL and browser console."
-          )
-        );
       };
 
       script.onerror = function () {
@@ -73,18 +69,27 @@
 
     style.textContent = `
       .epv-root {
-        display: flex;
         position: relative;
-        width: 100%;
+        z-index: 20;
+        display: grid;
+        grid-template-columns: 112px minmax(0, 1fr);
+        grid-template-areas:
+          "country phone"
+          "error error"
+          "status status";
         align-items: stretch;
         gap: 8px;
-        margin-bottom: 6px;
-        font: inherit;
+        width: 100%;
+        min-width: 0;
+        margin: 0 0 16px;
+        box-sizing: border-box;
+        grid-column: 1 / -1;
       }
 
       .epv-country {
+        grid-area: country;
         position: relative;
-        flex: 0 0 112px;
+        z-index: 2;
         min-width: 0;
       }
 
@@ -118,12 +123,13 @@
         top: calc(100% + 4px);
         left: 0;
         width: 280px;
-        max-width: 80vw;
+        max-width: min(280px, 80vw);
         padding: 8px;
         border: 1px solid #d5d9dd;
         border-radius: 8px;
         background: #fff;
-        box-shadow: 0 5px 24px rgba(0, 0, 0, .16);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, .16);
+        box-sizing: border-box;
       }
 
       .epv-menu[hidden],
@@ -175,15 +181,30 @@
         color: #66707a;
       }
 
+      .epv-root > #ec-phone {
+        grid-area: phone;
+        display: block;
+        width: 100% !important;
+        min-width: 0;
+        max-width: 100%;
+        box-sizing: border-box;
+        flex: none !important;
+      }
+
       .epv-error {
-        margin-top: 5px;
+        grid-area: error;
+        min-width: 0;
+        margin: 0;
         color: #c62828;
         font-size: 13px;
         line-height: 1.4;
+        overflow-wrap: anywhere;
       }
 
       .epv-status {
-        margin-top: 5px;
+        grid-area: status;
+        min-width: 0;
+        margin: 0;
         color: #68727d;
         font-size: 12px;
         line-height: 1.4;
@@ -195,8 +216,12 @@
       }
 
       @media (max-width: 480px) {
-        .epv-country {
-          flex-basis: 100px;
+        .epv-root {
+          grid-template-columns: 100px minmax(0, 1fr);
+        }
+
+        .epv-menu {
+          width: 270px;
         }
       }
     `;
@@ -251,7 +276,7 @@
   }
 
   // --------------------------------------------------
-  // 4. Mount UI beside the original Ecwid input
+  // 4. Mount phone selector
   // --------------------------------------------------
 
   function mount(phone, lib, countries) {
@@ -300,7 +325,7 @@
     status.hidden = true;
     status.setAttribute("aria-live", "polite");
 
-    // Keep the original Ecwid input element.
+    // Preserve the original Ecwid input element.
     phone.parentNode.insertBefore(root, phone);
     root.append(countryBox, phone);
 
@@ -308,7 +333,8 @@
     error.insertAdjacentElement("afterend", status);
 
     phone.style.minWidth = "0";
-    phone.style.flex = "1 1 auto";
+    phone.style.width = "100%";
+    phone.style.flex = "none";
     phone.style.boxSizing = "border-box";
 
     let selectedCode =
@@ -328,7 +354,6 @@
 
     function updateTrigger() {
       const country = selectedCountry();
-
       trigger.replaceChildren();
 
       const flagElement = document.createElement("span");
@@ -494,9 +519,7 @@
     });
 
     document.addEventListener("click", event => {
-      if (!countryBox.contains(event.target)) {
-        closeMenu();
-      }
+      if (!countryBox.contains(event.target)) closeMenu();
     });
 
     document.addEventListener("keydown", event => {
@@ -523,7 +546,7 @@
   }
 
   // --------------------------------------------------
-  // 5. Observe Ecwid checkout updates
+  // 5. Observe Ecwid checkout changes
   // --------------------------------------------------
 
   function start(lib) {
@@ -541,7 +564,7 @@
 
     scan();
 
-    observer = new MutationObserver(scan);
+    const observer = new MutationObserver(scan);
     observer.observe(document.body, {
       childList: true,
       subtree: true
