@@ -2,8 +2,8 @@
 (function () {
   "use strict";
 
-  if (window.__ecwidPhoneValidatorV3) return;
-  window.__ecwidPhoneValidatorV3 = true;
+  if (window.__ecwidPhoneValidatorV4) return;
+  window.__ecwidPhoneValidatorV4 = true;
 
   const LIB_URL =
     "https://unpkg.com/libphonenumber-js@1.11.20/bundle/libphonenumber-js.min.js";
@@ -13,15 +13,14 @@
     'input[name="country"][autocomplete="shipping country"]';
 
   // --------------------------------------------------
-  // 1. Load phone library
+  // 1. Load libphonenumber-js
   // --------------------------------------------------
 
   function loadLibrary() {
-    if (
-      window.libphonenumber &&
-      typeof window.libphonenumber.getCountries === "function"
-    ) {
-      return Promise.resolve(window.libphonenumber);
+    const existing = window.libphonenumber;
+
+    if (existing && typeof existing.getCountries === "function") {
+      return Promise.resolve(existing);
     }
 
     if (window.__epvLibraryPromise) {
@@ -30,6 +29,7 @@
 
     window.__epvLibraryPromise = new Promise((resolve, reject) => {
       const script = document.createElement("script");
+
       script.src = LIB_URL;
       script.async = true;
 
@@ -40,15 +40,13 @@
           resolve(lib);
         } else {
           reject(
-            new Error(
-              "Phone library loaded, but its browser API is unavailable."
-            )
+            new Error("libphonenumber-js browser API unavailable")
           );
         }
       };
 
       script.onerror = function () {
-        reject(new Error("Failed to download libphonenumber-js."));
+        reject(new Error("Failed to load libphonenumber-js"));
       };
 
       document.head.appendChild(script);
@@ -68,6 +66,25 @@
     style.id = STYLE_ID;
 
     style.textContent = `
+      /* Full-width phone row */
+      .ec-form__row.epv-phone-row {
+        position: relative !important;
+        display: flex !important;
+        flex-wrap: wrap !important;
+        width: 100% !important;
+        min-width: 0;
+        overflow: visible !important;
+      }
+
+      .ec-form__row.epv-phone-row > .ec-form__cell--phone {
+        flex: 0 0 100% !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        min-width: 0;
+        box-sizing: border-box;
+      }
+
+      /* Phone and country selector */
       .epv-root {
         position: relative;
         z-index: 20;
@@ -81,15 +98,14 @@
         gap: 8px;
         width: 100%;
         min-width: 0;
-        margin: 0 0 16px;
+        margin: 0 0 8px;
         box-sizing: border-box;
-        grid-column: 1 / -1;
       }
 
       .epv-country {
         grid-area: country;
         position: relative;
-        z-index: 2;
+        z-index: 100;
         min-width: 0;
       }
 
@@ -117,9 +133,10 @@
         outline-offset: 2px;
       }
 
+      /* Dropdown floats above other checkout fields */
       .epv-menu {
-        position: absolute;
-        z-index: 999999;
+        position: absolute !important;
+        z-index: 999999 !important;
         top: calc(100% + 4px);
         left: 0;
         width: 280px;
@@ -128,7 +145,7 @@
         border: 1px solid #d5d9dd;
         border-radius: 8px;
         background: #fff;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, .16);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, .18);
         box-sizing: border-box;
       }
 
@@ -187,8 +204,8 @@
         width: 100% !important;
         min-width: 0;
         max-width: 100%;
-        box-sizing: border-box;
         flex: none !important;
+        box-sizing: border-box;
       }
 
       .epv-error {
@@ -276,13 +293,29 @@
   }
 
   // --------------------------------------------------
-  // 4. Mount phone selector
+  // 4. Mount the phone selector
   // --------------------------------------------------
 
   function mount(phone, lib, countries) {
     if (!phone || !phone.isConnected) return;
     if (phone.dataset.epvMounted === "true") return;
     if (phone.disabled || phone.readOnly) return;
+
+    // Move the entire Ecwid phone cell to a separate row.
+    const phoneCell = phone.closest(".ec-form__cell--phone");
+    const originalRow = phoneCell?.closest(".ec-form__row");
+
+    if (phoneCell && originalRow) {
+      let phoneRow = document.querySelector(".ec-form__row.epv-phone-row");
+
+      if (!phoneRow) {
+        phoneRow = document.createElement("div");
+        phoneRow.className = "ec-form__row epv-phone-row";
+        originalRow.insertAdjacentElement("afterend", phoneRow);
+      }
+
+      phoneRow.appendChild(phoneCell);
+    }
 
     phone.dataset.epvMounted = "true";
 
@@ -325,7 +358,7 @@
     status.hidden = true;
     status.setAttribute("aria-live", "polite");
 
-    // Preserve the original Ecwid input element.
+    // Preserve Ecwid's original input.
     phone.parentNode.insertBefore(root, phone);
     root.append(countryBox, phone);
 
@@ -546,7 +579,7 @@
   }
 
   // --------------------------------------------------
-  // 5. Observe Ecwid checkout changes
+  // 5. Observe checkout updates
   // --------------------------------------------------
 
   function start(lib) {
@@ -582,9 +615,6 @@
   loadLibrary()
     .then(lib => start(lib))
     .catch(error => {
-      console.error(
-        "[Phone Validator] Failed to initialize:",
-        error
-      );
+      console.error("[Phone Validator] Failed to initialize:", error);
     });
 })();
