@@ -1,0 +1,73 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Phone Validator — SDK Test</title>
+  <style>
+    body {
+      max-width: 760px;
+      margin: 40px auto;
+      padding: 0 20px;
+      font: 15px/1.5 -apple-system, BlinkMacSystemFont, sans-serif;
+      color: #24292f;
+    }
+    h1 { font-size: 24px; }
+    button {
+      padding: 10px 16px;
+      border: 0;
+      border-radius: 6px;
+      background: #1769aa;
+      color: white;
+      cursor: pointer;
+    }
+    pre {
+      padding: 16px;
+      border-radius: 8px;
+      background: #f4f6f8;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+  </style>
+</head>
+<body>
+  <h1>Phone Validator — SDK Test</h1>
+  <p>Проверяем, доступен ли Ecwid App SDK и App Storage.</p>
+  <button id="test">Run diagnostics</button>
+  <pre id="result">Нажми Run diagnostics.</pre>
+
+  <script>
+    const result = document.getElementById("result");
+
+    function report(data) {
+      result.textContent = JSON.stringify(data, null, 2);
+    }
+
+    document.getElementById("test").addEventListener("click", async () => {
+      const output = {
+        url: location.href,
+        iframe: window.self !== window.top,
+        Ecwid: typeof window.Ecwid,
+        EcwidApp: typeof window.EcwidApp,
+        timestamp: new Date().toISOString()
+      };
+
+      if (window.EcwidApp) {
+        output.sdkMethods = Object.keys(window.EcwidApp);
+
+        for (const method of [
+          "getPayload",
+          "getAppStorage",
+          "setAppStorage",
+          "setAppPublicConfig"
+        ]) {
+          output[method] = typeof window.EcwidApp[method];
+        }
+      }
+
+      report(output);
+    });
+  </script>
+</body>
+</html>
