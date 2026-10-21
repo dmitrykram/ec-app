@@ -1,0 +1,5 @@
+{
+  "enabled": true,
+  "allowedCountries": ["GE", "US", "GB", "DE", "FR"],
+  "defaultCountry": "GE"
+}
