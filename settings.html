@@ -1,73 +1,423 @@
-
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Phone Validator — SDK Test</title>
+  <title>Phone Validator — Settings</title>
   <style>
+    :root {
+      color-scheme: light;
+      --text: #24292f;
+      --muted: #667085;
+      --border: #d0d5dd;
+      --surface: #fff;
+      --canvas: #f6f8fa;
+      --blue: #1769aa;
+      --blue-hover: #12558a;
+      --green: #067647;
+      --green-bg: #ecfdf3;
+      --red: #b42318;
+      --shadow: 0 2px 8px rgba(16, 24, 40, .06);
+    }
+    * { box-sizing: border-box; }
     body {
-      max-width: 760px;
-      margin: 40px auto;
-      padding: 0 20px;
-      font: 15px/1.5 -apple-system, BlinkMacSystemFont, sans-serif;
-      color: #24292f;
+      margin: 0;
+      background: var(--canvas);
+      color: var(--text);
+      font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
-    h1 { font-size: 24px; }
+    .page { max-width: 920px; margin: 0 auto; padding: 32px 20px 56px; }
+    .topbar { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; }
+    .app-icon {
+      display: grid; place-items: center; width: 48px; height: 48px;
+      border-radius: 12px; background: #e8f2ff; color: var(--blue); font-size: 24px;
+    }
+    h1 { margin: 0; font-size: 25px; line-height: 1.25; letter-spacing: -.4px; }
+    .subtitle { color: var(--muted); margin-top: 4px; }
+    .pill {
+      margin-left: auto; display: inline-flex; align-items: center; gap: 7px;
+      border-radius: 999px; padding: 5px 10px; font-size: 12px; font-weight: 650;
+      background: #f2f4f7; color: #475467; white-space: nowrap;
+    }
+    .pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #98a2b3; }
+    .pill.on { background: var(--green-bg); color: var(--green); }
+    .pill.on::before { background: #12b76a; }
+    .card {
+      background: var(--surface); border: 1px solid #e4e7ec; border-radius: 12px;
+      box-shadow: var(--shadow); margin-bottom: 18px; overflow: hidden;
+    }
+    .card-head { padding: 20px 22px 14px; }
+    h2 { font-size: 16px; margin: 0 0 4px; }
+    .description { color: var(--muted); margin: 0; }
+    .card-body { padding: 16px 22px 22px; border-top: 1px solid #f0f1f3; }
+    .setting-row { display: flex; align-items: center; gap: 20px; }
+    .setting-copy { flex: 1; min-width: 0; }
+    .setting-title { font-weight: 650; margin-bottom: 3px; }
+    .setting-description { color: var(--muted); font-size: 13px; }
+    .switch { position: relative; display: inline-block; width: 46px; height: 26px; flex: 0 0 auto; }
+    .switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+    .slider {
+      position: absolute; inset: 0; cursor: pointer; background: #d0d5dd;
+      border-radius: 999px; transition: background .15s;
+    }
+    .slider::before {
+      content: ""; position: absolute; width: 20px; height: 20px; left: 3px; top: 3px;
+      border-radius: 50%; background: #fff; box-shadow: 0 1px 3px #0002; transition: transform .15s;
+    }
+    .switch input:checked + .slider { background: var(--blue); }
+    .switch input:checked + .slider::before { transform: translateX(20px); }
+    .switch input:focus-visible + .slider { outline: 2px solid var(--blue); outline-offset: 3px; }
+    .toolbar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+    input[type="search"], select {
+      width: 100%; min-height: 40px; padding: 9px 11px; border: 1px solid var(--border);
+      border-radius: 7px; background: white; color: var(--text); font: inherit;
+    }
+    input[type="search"] { flex: 1 1 240px; }
     button {
-      padding: 10px 16px;
-      border: 0;
-      border-radius: 6px;
-      background: #1769aa;
-      color: white;
-      cursor: pointer;
+      min-height: 38px; border: 1px solid var(--border); border-radius: 7px; padding: 8px 12px;
+      background: white; color: var(--text); font: inherit; font-weight: 600; cursor: pointer;
     }
-    pre {
-      padding: 16px;
-      border-radius: 8px;
-      background: #f4f6f8;
-      white-space: pre-wrap;
-      overflow-wrap: anywhere;
+    button:hover { background: #f9fafb; }
+    button.primary { background: var(--blue); border-color: var(--blue); color: white; }
+    button.primary:hover { background: var(--blue-hover); }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    .country-summary { color: var(--muted); font-size: 12px; margin: 0 0 10px; }
+    .country-list {
+      display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 16px;
+      max-height: 340px; overflow: auto; border: 1px solid #eaecf0; border-radius: 8px; padding: 4px 12px;
+    }
+    .country {
+      display: flex; align-items: center; gap: 10px; min-width: 0; min-height: 43px;
+      border-bottom: 1px solid #f2f4f7;
+    }
+    .country:last-child { border-bottom-color: transparent; }
+    .country input { width: 16px; height: 16px; accent-color: var(--blue); flex: 0 0 auto; }
+    .country-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .country-code { color: var(--muted); font-size: 12px; white-space: nowrap; }
+    .empty { padding: 22px; color: var(--muted); text-align: center; grid-column: 1 / -1; }
+    .select-wrap { max-width: 360px; margin-top: 16px; }
+    .select-wrap label { display: block; font-weight: 650; margin-bottom: 6px; }
+    .notice {
+      border: 1px solid #fedf89; background: #fffaeb; color: #93370d;
+      border-radius: 8px; padding: 12px 14px; margin-bottom: 18px; font-size: 13px;
+    }
+    .footer { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding-top: 4px; }
+    #saveStatus { color: var(--muted); font-size: 13px; }
+    #saveStatus.success { color: var(--green); }
+    #saveStatus.error { color: var(--red); }
+    .disabled-overlay { opacity: .55; }
+    @media (max-width: 600px) {
+      .page { padding: 22px 12px 36px; }
+      .topbar { align-items: flex-start; }
+      .pill { font-size: 0; padding: 9px; }
+      .pill::before { width: 8px; height: 8px; }
+      .card-head, .card-body { padding-left: 16px; padding-right: 16px; }
+      .country-list { grid-template-columns: minmax(0, 1fr); max-height: 300px; }
+      .setting-row { gap: 12px; }
     }
   </style>
 </head>
 <body>
-  <h1>Phone Validator — SDK Test</h1>
-  <p>Проверяем, доступен ли Ecwid App SDK и App Storage.</p>
-  <button id="test">Run diagnostics</button>
-  <pre id="result">Нажми Run diagnostics.</pre>
+  <main class="page">
+    <header class="topbar">
+      <div class="app-icon" aria-hidden="true">☎</div>
+      <div>
+        <h1>Phone Validator</h1>
+        <div class="subtitle">Checkout phone number settings</div>
+      </div>
+      <div id="statusPill" class="pill">Disabled</div>
+    </header>
 
+    <div class="notice">
+      <strong>Prototype mode:</strong> settings are saved only in this browser using localStorage.
+      They are not yet connected to Ecwid checkout or shared between devices/stores.
+    </div>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>Application status</h2>
+        <p class="description">Control whether the phone validator should run at checkout.</p>
+      </div>
+      <div class="card-body">
+        <div class="setting-row">
+          <div class="setting-copy">
+            <div class="setting-title">Enable phone validator</div>
+            <div class="setting-description">Show the phone country selector and validate the entered number.</div>
+          </div>
+          <label class="switch" aria-label="Enable phone validator">
+            <input id="enabled" type="checkbox">
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <section id="countriesCard" class="card">
+      <div class="card-head">
+        <h2>Allowed countries</h2>
+        <p class="description">Only selected countries will appear in the checkout phone country selector.</p>
+      </div>
+      <div class="card-body">
+        <div class="toolbar">
+          <input id="countrySearch" type="search" placeholder="Search countries or calling codes…" aria-label="Search countries">
+          <button id="selectAll" type="button">Select all</button>
+          <button id="selectNone" type="button">Clear selection</button>
+        </div>
+        <p id="countrySummary" class="country-summary">Loading country list…</p>
+        <div id="countryList" class="country-list" aria-live="polite">
+          <div class="empty">Loading countries…</div>
+        </div>
+        <div class="select-wrap">
+          <label for="defaultCountry">Default country</label>
+          <select id="defaultCountry" disabled>
+            <option value="">Loading countries…</option>
+          </select>
+          <div class="setting-description" style="margin-top:6px">Used when the checkout country cannot be detected.</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="footer">
+      <button id="save" class="primary" type="button">Save settings</button>
+      <button id="reset" type="button">Reset</button>
+      <span id="saveStatus" role="status" aria-live="polite">Changes not saved</span>
+    </div>
+  </main>
+
+  <script src="https://unpkg.com/libphonenumber-js@1.11.20/bundle/libphonenumber-js.min.js"></script>
   <script>
-    const result = document.getElementById("result");
+    (() => {
+      "use strict";
 
-    function report(data) {
-      result.textContent = JSON.stringify(data, null, 2);
-    }
-
-    document.getElementById("test").addEventListener("click", async () => {
-      const output = {
-        url: location.href,
-        iframe: window.self !== window.top,
-        Ecwid: typeof window.Ecwid,
-        EcwidApp: typeof window.EcwidApp,
-        timestamp: new Date().toISOString()
+      const STORAGE_KEY = "phoneValidatorSettingsPrototypeV1";
+      const DEFAULTS = {
+        enabled: true,
+        allowedCountries: ["GE", "US", "GB", "DE", "FR"],
+        defaultCountry: "GE"
       };
 
-      if (window.EcwidApp) {
-        output.sdkMethods = Object.keys(window.EcwidApp);
+      const $ = (id) => document.getElementById(id);
+      const state = { countries: [], settings: structuredClone(DEFAULTS), dirty: false };
 
-        for (const method of [
-          "getPayload",
-          "getAppStorage",
-          "setAppStorage",
-          "setAppPublicConfig"
-        ]) {
-          output[method] = typeof window.EcwidApp[method];
+      function setSaveStatus(message, type = "") {
+        const node = $("saveStatus");
+        node.textContent = message;
+        node.className = type;
+      }
+
+      function loadSavedSettings() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return structuredClone(DEFAULTS);
+          const saved = JSON.parse(raw);
+          return {
+            enabled: typeof saved.enabled === "boolean" ? saved.enabled : DEFAULTS.enabled,
+            allowedCountries: Array.isArray(saved.allowedCountries) ? saved.allowedCountries : [...DEFAULTS.allowedCountries],
+            defaultCountry: typeof saved.defaultCountry === "string" ? saved.defaultCountry : DEFAULTS.defaultCountry
+          };
+        } catch (error) {
+          console.warn("Could not read prototype settings:", error);
+          return structuredClone(DEFAULTS);
         }
       }
 
-      report(output);
-    });
+      function getCountryData() {
+        const lib = window.libphonenumber;
+        if (!lib || typeof lib.getCountries !== "function" ||
+            typeof lib.getCountryCallingCode !== "function") {
+          throw new Error("The phone-number library did not load. Check the internet connection or CDN access.");
+        }
+        const displayNames = new Intl.DisplayNames(["en"], { type: "region" });
+        return lib.getCountries().map(code => ({
+          code,
+          name: displayNames.of(code) || code,
+          dial: "+" + lib.getCountryCallingCode(code)
+        })).sort((a, b) => a.name.localeCompare(b.name));
+      }
+
+      function renderCountries() {
+        const query = $("countrySearch").value.trim().toLowerCase();
+        const allowed = new Set(state.settings.allowedCountries);
+        const filtered = state.countries.filter(country =>
+          country.name.toLowerCase().includes(query) ||
+          country.code.toLowerCase().includes(query) ||
+          country.dial.includes(query)
+        );
+
+        const list = $("countryList");
+        list.replaceChildren();
+
+        if (!filtered.length) {
+          const empty = document.createElement("div");
+          empty.className = "empty";
+          empty.textContent = "No countries found.";
+          list.appendChild(empty);
+        } else {
+          filtered.forEach(country => {
+            const label = document.createElement("label");
+            label.className = "country";
+
+            const checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.checked = allowed.has(country.code);
+            checkbox.setAttribute("aria-label", "Allow " + country.name);
+            checkbox.addEventListener("change", () => {
+              const next = new Set(state.settings.allowedCountries);
+              if (checkbox.checked) next.add(country.code);
+              else next.delete(country.code);
+              state.settings.allowedCountries = [...next].filter(code =>
+                state.countries.some(item => item.code === code)
+              ).sort();
+              if (!state.settings.allowedCountries.includes(state.settings.defaultCountry)) {
+                state.settings.defaultCountry = state.settings.allowedCountries[0] || "";
+              }
+              renderCountries();
+              renderDefaultCountry();
+              markDirty();
+            });
+
+            const name = document.createElement("span");
+            name.className = "country-name";
+            name.textContent = country.name;
+
+            const dial = document.createElement("span");
+            dial.className = "country-code";
+            dial.textContent = country.dial;
+
+            label.append(checkbox, name, dial);
+            list.appendChild(label);
+          });
+        }
+
+        $("countrySummary").textContent =
+          state.settings.allowedCountries.length + " of " + state.countries.length + " countries allowed";
+      }
+
+      function renderDefaultCountry() {
+        const select = $("defaultCountry");
+        const previous = state.settings.defaultCountry;
+        select.replaceChildren();
+
+        const allowedCountries = state.countries.filter(country =>
+          state.settings.allowedCountries.includes(country.code)
+        );
+
+        if (!allowedCountries.length) {
+          const option = document.createElement("option");
+          option.value = "";
+          option.textContent = "Select at least one allowed country";
+          select.appendChild(option);
+          select.disabled = true;
+          state.settings.defaultCountry = "";
+          return;
+        }
+
+        allowedCountries.forEach(country => {
+          const option = document.createElement("option");
+          option.value = country.code;
+          option.textContent = country.name + " (" + country.dial + ")";
+          select.appendChild(option);
+        });
+
+        select.disabled = false;
+        select.value = allowedCountries.some(c => c.code === previous)
+          ? previous
+          : allowedCountries[0].code;
+        state.settings.defaultCountry = select.value;
+      }
+
+      function renderEnabledState() {
+        $("statusPill").textContent = state.settings.enabled ? "Enabled" : "Disabled";
+        $("statusPill").classList.toggle("on", state.settings.enabled);
+        $("countriesCard").classList.toggle("disabled-overlay", !state.settings.enabled);
+      }
+
+      function markDirty() {
+        state.dirty = true;
+        setSaveStatus("Changes not saved");
+      }
+
+      function applySettingsToForm() {
+        $("enabled").checked = state.settings.enabled;
+        renderEnabledState();
+        renderCountries();
+        renderDefaultCountry();
+        state.dirty = false;
+        setSaveStatus("Settings loaded");
+      }
+
+      $("enabled").addEventListener("change", () => {
+        state.settings.enabled = $("enabled").checked;
+        renderEnabledState();
+        markDirty();
+      });
+
+      $("countrySearch").addEventListener("input", renderCountries);
+
+      $("defaultCountry").addEventListener("change", () => {
+        state.settings.defaultCountry = $("defaultCountry").value;
+        markDirty();
+      });
+
+      $("selectAll").addEventListener("click", () => {
+        state.settings.allowedCountries = state.countries.map(country => country.code);
+        renderCountries();
+        renderDefaultCountry();
+        markDirty();
+      });
+
+      $("selectNone").addEventListener("click", () => {
+        state.settings.allowedCountries = [];
+        state.settings.defaultCountry = "";
+        renderCountries();
+        renderDefaultCountry();
+        markDirty();
+      });
+
+      $("save").addEventListener("click", () => {
+        if (state.settings.allowedCountries.length > 0 &&
+            !state.settings.allowedCountries.includes(state.settings.defaultCountry)) {
+          setSaveStatus("Default country must be allowed.", "error");
+          return;
+        }
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state.settings));
+          state.dirty = false;
+          setSaveStatus("Saved in this browser", "success");
+          console.info("[Phone Validator prototype] Settings saved", state.settings);
+        } catch (error) {
+          setSaveStatus("Could not save settings in this browser.", "error");
+          console.error(error);
+        }
+      });
+
+      $("reset").addEventListener("click", () => {
+        state.settings = structuredClone(DEFAULTS);
+        applySettingsToForm();
+        markDirty();
+      });
+
+      try {
+        state.countries = getCountryData();
+        state.settings = loadSavedSettings();
+        state.settings.allowedCountries = state.settings.allowedCountries.filter(code =>
+          state.countries.some(country => country.code === code)
+        );
+        if (!state.settings.allowedCountries.includes(state.settings.defaultCountry)) {
+          state.settings.defaultCountry = state.settings.allowedCountries[0] || "";
+        }
+        applySettingsToForm();
+      } catch (error) {
+        $("countryList").innerHTML = "";
+        const message = document.createElement("div");
+        message.className = "empty";
+        message.textContent = error.message;
+        $("countryList").appendChild(message);
+        $("countrySummary").textContent = "Country list unavailable";
+        setSaveStatus("Could not initialize", "error");
+        console.error("[Phone Validator prototype]", error);
+      }
+    })();
   </script>
 </body>
 </html>
